@@ -6,7 +6,10 @@ A RAG (Retrieval-Augmented Generation) application that allows you to query pers
 
 This application enables you to:
 
-1. Ingest content from multiple sources (blog posts, microblogs, YouTube videos, etc.)
+1. Ingest content from multiple sources
+    - [kjaymiller.com/blog](https://kjaymiller.com/blog/blog.html)
+    - [kjaymiller.com/microblog](https://kjaymiller.com/microblog/microblog.html)
+    - [Conduit](https://relay.fm/conduit)
 2. Store content with vector embeddings in a PostgreSQL database
 3. Query your content using hybrid search (keyword + semantic vector similarity)
 4. Generate AI-powered responses based on your personal content
