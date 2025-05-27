@@ -1,4 +1,3 @@
-import os
 from typing import Optional
 import typing_extensions
 import typer
@@ -13,11 +12,14 @@ app = typer.Typer()
 def get_query(query: str):
     results = similarity_search(query)
     messages = [f"{title} - {content}" for content, title, score in results]
-    return "\n\n".join(messages)
+    return "\n\n-----\n\n".join(messages)
 
 
 @app.command(name="query")
 def _query(query: str):
+    """
+    Perform a Hybrid search of the query
+    """
     print(get_query(query))
 
 
@@ -32,7 +34,7 @@ def ai(
     results = get_query(query)
 
     llm = ChatAnthropic(
-        model="claude-3-7-sonnet-20250219",
+        model_name="claude-sonnet-4-20250514",
         temperature=0,
         max_tokens=1024,
         timeout=None,

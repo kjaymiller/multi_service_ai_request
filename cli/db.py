@@ -26,8 +26,8 @@ def similarity_search(query: str):
     SELECT title, content_snippet, hybrid_score FROM hybrid_search(
         %s,
         %s::vector,  -- Your query embedding
-        0.25,  -- Content weight
-        0.25,   -- Vector weight
+        0.6,  -- Content weight
+        0.4,   -- Vector weight
         20     -- Max results
     );"""
 

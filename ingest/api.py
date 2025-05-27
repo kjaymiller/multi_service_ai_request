@@ -22,25 +22,24 @@ db_connection = psycopg.connect(
 
 
 class Source(Enum):
-    conduit = "Conduit"
-    blog = "Blog"
-    microblog = "Microblog"
-    youtube = "YouTube"
-    conference_talk = "Conference Talk"
+    conduit = "conduit"
+    blog = "blog"
+    microblog = "microblog"
+    youtube = "youtube"
+    guest_podcast = "guest_podcast"
+    conference_talk = "conference_talk"
+    notes_to_self = "notes_to_self"
 
 
-def get_content_source(source: str) -> Dict[str, Any]:
-    with db_connection.cursor() as cursor:
-        logging.info("fetching id, chunk_size")
-        cursor.execute(
-            """
-            SELECT id, chunk_size FROM contentsource WHERE name = %s;
-            """,
-            (source,),
-        )
-        record = cursor.fetchone()
-        logging.info("record fetched: %s" % record)
-    return record
+chunk_size = {
+    "conduit": 300,
+    "blog": 500,
+    "microblog": 0,
+    "youtube": 300,
+    "guest_podcast": 300,
+    "conference_talk": 300,
+    "notes_to_self": 300,
+}
 
 
 class DateTimeEncoder(json.JSONEncoder):
@@ -50,17 +49,17 @@ class DateTimeEncoder(json.JSONEncoder):
         return super(DateTimeEncoder, self).default(obj)
 
 
-def create_content_item(source_id: int, meta: Dict[str, Any]) -> int:
+def create_content_item(source: Source, meta: Dict[str, Any]) -> int:
     logging.info("converting meta into JSON")
     meta = json.dumps(meta, cls=DateTimeEncoder)
     logging.info("creating new item record")
     with db_connection.cursor() as cursor:
         cursor.execute(
             """
-            Insert into contentitem (source_id, meta) values (%s, %s::jsonb)
+            Insert into contentitem (source, meta) values (%s, %s::jsonb)
             RETURNING id;
             """,
-            (source_id, meta),
+            (source, meta),
         )
         record = cursor.fetchone()
     db_connection.commit()
@@ -116,13 +115,12 @@ def generate_embeddings(chunk_size: int, content: str, content_item_id: int):
 
 
 def create_item(filepath: pathlib.Path, source: Source):
-    source_record = get_content_source(source=source.value)
     post = frontmatter.load(filepath)
     meta, content = post.metadata, post.content
-    content_item_id = create_content_item(source_id=source_record["id"], meta=meta)
+    content_item_id = create_content_item(source=source, meta=meta)
     generate_embeddings(
         content_item_id=content_item_id,
-        chunk_size=source_record["chunk_size"],
+        chunk_size=chunk_size[source.value],
         content=content,
     )
 
@@ -132,15 +130,12 @@ def import_item(filepath: pathlib.Path, source: Source):
     create_item(filepath=filepath, source=source)
 
 
-# The functions below are for bulk upload
-
-
 @app.command(name="microblog")
 def bulk_microblog(microblog_path: pathlib.Path):
     source = Source.microblog
 
     for entry in microblog_path.iterdir():
-        logging.warning("adding %s" % entry)
+        logging.info("adding %s" % entry)
         create_item(filepath=entry.absolute(), source=source)
 
 
@@ -149,7 +144,7 @@ def bulk_blog(blog_path: pathlib.Path):
     source = Source.blog
 
     for entry in blog_path.glob("*.md"):
-        logging.warning("adding %s" % entry)
+        logging.info("adding %s" % entry)
         create_item(filepath=entry.absolute(), source=source)
 
 
@@ -158,7 +153,17 @@ def bulk_conduit(blog_path: pathlib.Path):
     source = Source.conduit
 
     for entry in blog_path.iterdir():
-        logging.warning("adding %s" % entry)
+        logging.info("adding %s" % entry)
+        create_item(filepath=entry.absolute(), source=source)
+
+
+@app.command(name="notes")
+def bulk_notes(notes_path: pathlib.Path):
+    """Bulk load notes to self section"""
+    source = Source.notes_to_self
+
+    for entry in notes_path.glob("*.md"):
+        logging.info("adding %s" % entry)
         create_item(filepath=entry.absolute(), source=source)
 
 
