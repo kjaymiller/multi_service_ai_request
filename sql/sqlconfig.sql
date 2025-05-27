@@ -1,17 +1,9 @@
 CREATE EXTENSION IF NOT EXISTS vector;
 --
--- Table 2: ContentSource
-CREATE TABLE ContentSource (
-    id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
-    chunk_size INTEGER NOT NULL,
-    input_url TEXT
-);
-
 -- Table 1: ContentItem
 CREATE TABLE ContentItem (
     id SERIAL PRIMARY KEY,
-    source_id INTEGER NOT NULL,
+    source_id content_source,
     meta JSONB NOT NULL,
     CONSTRAINT fk_source
       FOREIGN KEY(source_id) 
@@ -30,3 +22,8 @@ CREATE TABLE QuoteEmbeddings (
 	  REFERENCES ContentItem(id)
       ON DELETE CASCADE
 );
+
+CREATE EXTENSION IF NOT EXISTS vectorscale CASCADE;
+CREATE INDEX document_embedding_idx ON QuoteEmbeddings 
+USING diskann (embedding vector_cosine_ops);
+
